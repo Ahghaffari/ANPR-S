@@ -2,9 +2,7 @@
 
 
 ### Making executable
-To make exe of this project use this command:
-
-`pyinstaller --noconfirm --onedir --console --icon "D:/ANPR/ANPR/bullet-camera.ico" --add-data "D:/ANPR/ANPR/Activator.dll;." --add-data "D:/ANPR/ANPR/activator.o;." --add-data "D:/ANPR/ANPR/bullet-camera.ico;." --add-data "D:/ANPR/ANPR/config.ini;." --add-data "D:/ANPR/ANPR/database.txt;." --add-data "D:/ANPR/ANPR/IEShims.dll;." --add-data "D:/ANPR/ANPR/libActivator.a;." --add-data "D:/ANPR/ANPR/libgcc_s_seh-1.dll;." --add-data "D:/ANPR/ANPR/libstdc++-6.dll;." --add-data "D:/ANPR/ANPR/libwinpthread-1.dll;." --add-data "D:/ANPR/ANPR/winsockhc.dll;." --add-data "D:/ANPR/ANPR/weights;weights/" --hidden-import "configparser"  "D:/ANPR/ANPR/run.py"`
+To make exe of this project use auto-py-to-exe or pyinstaller
 
 
 ### Setup
