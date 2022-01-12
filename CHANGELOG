@@ -1,0 +1,7 @@
+- Version 4.1.5
+    New UI designed for simple configuration
+    Check activation via open port in case of internet disconnection based on activation 103
+
+- Version 4.1.4
+    UI designed
+    New activation based on activation 102
