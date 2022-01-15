@@ -52,7 +52,8 @@ SHOW_RESOLUTION_X = Config.getint('OUTPUT', 'resolution_X')
 SHOW_RESOLUTION_Y = Config.getint('OUTPUT', 'resolution_Y')
 IMAGE_OUT_PATH = Config.get('OUTPUT', 'IMAGE_OUT_PATH')
 
-CAMERA_URL = Config.get('CAMERA', 'url')
+CAMERA_BRAND = Config.get('CAMERA', 'brand')
+CAMERA_IP = get_value_encrypted('CAMERA', 'ip')
 
 SAVE_PIC_DB = Config.getboolean('OPTIONS', 'save_pic_db')
 SAVE_PIC_DRIVE = Config.getboolean('OPTIONS', 'save_pic_drive')

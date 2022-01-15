@@ -70,7 +70,6 @@ def check_licence():
         if is_activated is False and offline_activation is False:
             window = tk.Tk()
             window.title("Registration result")
-            # window.geometry("269x110")
             window.resizable(0, 0)
             window.protocol('WM_DELETE_WINDOW', destroy)
             window.iconbitmap('b.ico')
@@ -84,11 +83,12 @@ def check_licence():
             else:
                 reg = tk.Label(window, text='Device is not activated. Device ID:\n ' +
                                             str(uuid) + '\n' +
-                                            'To activate please call FardIran (+98-21-8234).', font=('calibre', 10), anchor='center')
+                                            'To activate please call FardIran (+98-21-8234).', font=('calibre', 10),
+                               anchor='center')
 
             okVar = tk.IntVar()
             btnOK = tk.Button(window, text="OK", pady=5, font=("calibre", 10),
-                                bg='lightgreen', command=lambda: okVar.set(1))
+                              bg='lightgreen', command=lambda: okVar.set(1))
             window.tkraise()
             reg.grid(row=1, column=0)
             btnOK.grid(row=2, column=0)
@@ -340,13 +340,29 @@ def on_mouse(event, x, y, flags, param):
         mouse_poslist.append((x, y))
 
 
+def set_camera_url(brand, ip, user, password):
+    if brand.lower() == "acti":
+        url = "http://{0}/cgi-bin/encoder?USER={1}&PWD={2}&SNAPSHOT".format(ip, user, password)
+    elif brand.lower() == "milesight":
+        url = "http://{0}:{1}@{2}:80/ipcam/mjpeg.cgi".format(user, password, ip)
+    else:
+        print("[  CONF  ] : Other camera models url")
+        url = ip
+    return url
+
+
+def set_camera(brand, plate_img):
+
+    pass
+
 def main():
-    print("Started Version 4.2.9 : ")
+    print("FardIran ANPR System Started version 1.0 ;) ")
     global IMAGE_OUT_PATH
     global CAR_OUT_PATH
     global PLATE_OUT_PATH
     global mouse_poslist
-    global CAMERA_URL
+    global CAMERA_IP
+    global CAMERA_BRAND
     global NTP_LIST
     global SYNC_FLAG
     if SYNC_FLAG:
@@ -355,7 +371,7 @@ def main():
         except:
             pass
     check_licence()
-    CAMERA_URL = CAMERA_URL.format(CAM_USER, CAM_PASSWORD)
+    CAMERA_URL = set_camera_url(CAMERA_BRAND, CAMERA_IP, CAM_USER, CAM_PASSWORD)
     CAR_OUT_PATH = IMAGE_OUT_PATH
     if not os.path.exists(IMAGE_OUT_PATH):
         os.mkdir(IMAGE_OUT_PATH)
