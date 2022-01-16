@@ -9,6 +9,7 @@ from settings import *
 from table import save_into_database
 import sync_time
 import requests
+from pyflycap2.interface import CameraContext, GUI, Camera
 
 
 def decrypt_message(encrypted_message):
@@ -353,8 +354,7 @@ def set_camera_url(brand, ip, user, password):
     return url
 
 
-def set_camera(state, brand, ip, user, password, gain_list=None, shutter_list=None,
-               plate_img=None):
+def set_camera(state, brand, ip=None, user=None, password=None, gain_list=None, shutter_list=None, plate_img=None):
     global gain, shutter, PLATE_MEAN_LOW_THR, PLATE_MEAN_HIGH_THR, MIN_SHUTTER
     if brand.lower() == "acti":
         if state == "init":
@@ -438,10 +438,46 @@ def set_camera(state, brand, ip, user, password, gain_list=None, shutter_list=No
 
     elif brand.lower() == "milesight":
         pass
+    elif brand.lower() == "pointgrey":
+        if state == "init":
+            pass
+        else:
+            # CAM_AVG_QUEUE.append(cv2.mean(plate_img)[0])
+            # # Z = np.float32(plate_img.reshape((-1)))
+            # #
+            # # # Define criteria, number of clusters(K) and apply kmeans()
+            # # criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
+            # #
+            # # ret, label, center = cv2.kmeans(Z, 2, None, criteria, 5, cv2.KMEANS_RANDOM_CENTERS)
+            # #
+            # # # Convert back into uint8, and make original image
+            # # center = np.uint8(center)
+            # #
+            # # # Add calculations to queue
+            # # CAM_MEAN_CENTER_QUEUE.append(center[1][0] / 2 + center[0][0] / 2)
+            # # CAM_MEAN_MINUS_QUEUE.append(np.abs(center[1][0] - center[0][0]))
+            #
+            # mean = np.mean(CAM_AVG_QUEUE)
+            # # print(mean, gain, shutter)
+            # # minus = np.mean(CAM_MEAN_MINUS_QUEUE)
+            # if mean < PLATE_MEAN_LOW_THR:
+            #     if int(shutter) > int(MIN_SHUTTER):
+            #         shutter = shutter_list[shutter_list.index(shutter) - 1]
+            #
+            #     elif gain < int(gain_list[2]):
+            #         gain = gain + int(gain_list[1])
+            #
+            #
+            # elif mean > PLATE_MEAN_HIGH_THR:
+            #     if gain > int(gain_list[0]):
+            #         gain = gain - int(gain_list[1])
+            #
+            #     elif int(shutter) < int(shutter_list[-1]):
+            #         shutter = shutter_list[shutter_list.index(shutter) + 1]
+            pass
     else:
         pass
 
-    pass
 
 
 def main():
@@ -458,7 +494,7 @@ def main():
 
     CAMERA_URL = set_camera_url(CAMERA_BRAND, CAMERA_IP, CAM_USER, CAM_PASSWORD)
     if CAMERA_SET_INIT:
-        set_camera("init", CAMERA_BRAND, CAMERA_IP, CAM_USER, CAM_PASSWORD)
+        set_camera(state="init", brand=CAMERA_BRAND, ip=CAMERA_IP, user=CAM_USER, password=CAM_PASSWORD)
 
     CAR_OUT_PATH = IMAGE_OUT_PATH
     if not os.path.exists(IMAGE_OUT_PATH):
@@ -475,14 +511,45 @@ def main():
     last_plate = "99K999_99"
     last_plate_minimum_conf = 0.05
 
-    cap = cv2.VideoCapture(CAMERA_URL)
+    if CAMERA_BRAND == "pointgrey":
+        cc = CameraContext()
+        cc.rescan_bus()
+        cam_list = cc.get_gige_cams()
+        c = Camera(serial=cam_list[int(CAMERA_IP)])
+        c.connect()
+        c.start_capture()
+    else:
+        cap = cv2.VideoCapture(CAMERA_URL)
+
     while True:
-        ret, frame = cap.read()
-        if not ret:
-            cap = cv2.VideoCapture(CAMERA_URL)
-            print("[ ERROR ] : initial reading from camera!")
-            continue
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        if CAMERA_BRAND == "pointgrey":
+            try:
+                try:
+                    c.read_next_image()
+                except:
+                    continue
+                image_dict = c.get_current_image()
+                image_bytes = image_dict["buffer"]
+                frame = np.frombuffer(image_bytes, dtype=np.uint8).reshape((-1, 1288))
+                gray = np.asarray(frame)
+            except:
+                cc = CameraContext()
+                cc.rescan_bus()
+                cam_list = cc.get_gige_cams()
+                c = Camera(serial=cam_list[int(CAMERA_IP)])
+                c.connect()
+                c.start_capture()
+                print("[ ERROR ] : initial reading from camera!")
+                continue
+
+        else:
+            ret, frame = cap.read()
+            if not ret:
+                cap = cv2.VideoCapture(CAMERA_URL)
+                print("[ ERROR ] : initial reading from camera!")
+                continue
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
         MASK_RESOLUTION_X, MASK_RESOLUTION_Y = np.shape(gray)
         break
 
@@ -592,37 +659,56 @@ def main():
                     cv2.destroyWindow('masked ROI_' + str(CAMERA_NUM))
 
     if not CAMERA_SET_AUTO:
-        # set gain and shutter manual
-        req = "http://{0}:80/cgi-bin/encoder?USER={1}&PWD={2}&VIDEO_EXPOSURE_MODE={3}" \
-            .format(CAMERA_IP, CAM_USER, CAM_PASSWORD, "Manual")
-        requests.get(req)
-        req = "http://{0}:80/cgi-bin/encoder?USER={1}&PWD={2}&VIDEO_EXPOSURE_GAIN&VIDEO_SHUTTER_SPEED" \
-            .format(CAMERA_IP, CAM_USER, CAM_PASSWORD)
-        requests.get(req)
-        res = requests.get(req).content.decode("utf-8").split("'")
-        gain = int(res[1])
-        shutter = str(res[3])
-        gain_list = GAIN_MINMAX.split(",")
-        shutter_list = SHUTTER_LIST.split(",")
+        if CAMERA_BRAND.lower() == "acti":
+            # set gain and shutter manual
+            req = "http://{0}:80/cgi-bin/encoder?USER={1}&PWD={2}&VIDEO_EXPOSURE_MODE={3}" \
+                .format(CAMERA_IP, CAM_USER, CAM_PASSWORD, "Manual")
+            requests.get(req)
+            req = "http://{0}:80/cgi-bin/encoder?USER={1}&PWD={2}&VIDEO_EXPOSURE_GAIN&VIDEO_SHUTTER_SPEED" \
+                .format(CAMERA_IP, CAM_USER, CAM_PASSWORD)
+            requests.get(req)
+            res = requests.get(req).content.decode("utf-8").split("'")
+            gain = int(res[1])
+            shutter = str(res[3])
+            gain_list = GAIN_MINMAX.split(",")
+            shutter_list = SHUTTER_LIST.split(",")
 
-        if int(shutter) < int(MIN_SHUTTER):
-            shutter = MIN_SHUTTER
+            if int(shutter) < int(MIN_SHUTTER):
+                shutter = MIN_SHUTTER
 
-        if int(gain) > int(gain_list[2]):
-            gain = int(gain_list[2])
-        elif int(gain) < int(gain_list[0]):
-            gain = int(gain_list[0])
+            if int(gain) > int(gain_list[2]):
+                gain = int(gain_list[2])
+            elif int(gain) < int(gain_list[0]):
+                gain = int(gain_list[0])
 
     while True:
-        ret, frame = cap.read()
-        if not ret:
-            cap = cv2.VideoCapture(CAMERA_URL)
-            continue
-        # if not CAMERA_SET_AUTO:
-        #     set_camera("stream", CAMERA_BRAND, CAMERA_IP, CAM_USER, CAM_PASSWORD, gain_list,
-        #                shutter_list, frame)
+        if CAMERA_BRAND.lower() == "pointgrey":
+            try:
+                try:
+                    c.read_next_image()
+                except:
+                    continue
+                image_dict = c.get_current_image()
+                image_bytes = image_dict["buffer"]
+                frame = np.frombuffer(image_bytes, dtype=np.uint8).reshape((-1, 1288))
+                gray = frame
+            except:
+                cc = CameraContext()
+                cc.rescan_bus()
+                cam_list = cc.get_gige_cams()
+                c = Camera(serial=cam_list[int(CAMERA_IP)])
+                c.connect()
+                c.start_capture()
+                print("[ ERROR ] : initial reading from camera!")
+                continue
+        else:
+            ret, frame = cap.read()
+            if not ret:
+                cap = cv2.VideoCapture(CAMERA_URL)
+                print("[ ERROR ] : initial reading from camera!")
+                continue
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         gray_masked = np.multiply(gray, mask).astype(np.uint8)
         gray_masked_ROI = gray_masked[min(posNp[0][1], posNp[1][1]):max(posNp[2][1], posNp[3][1]),
                           min(posNp[0][0], posNp[3][0]):max(posNp[1][0], posNp[2][0])]
@@ -662,11 +748,9 @@ def main():
                                        cv2.resize(plate_img, (SHOW_RESOLUTION_X, SHOW_RESOLUTION_Y)))
                             cv2.waitKey(1)
                         if not CAMERA_SET_AUTO:
-                            set_camera("stream", CAMERA_BRAND, CAMERA_IP, CAM_USER, CAM_PASSWORD, gain_list,
-                                       shutter_list, plate_img)
+                            set_camera(state="stream", brand=CAMERA_BRAND, ip=CAMERA_IP, user=CAM_USER, password=CAM_PASSWORD,
+                                       gain_list=gain_list, shutter_list=shutter_list, plate_img=plate_img)
                         break
-
-
 
                 except:
                     pass

@@ -1,8 +1,12 @@
 Traceback (most recent call last):
-  File "D:/ANPR/anpr-s/ANPR_S.py", line 621, in <module>
+  File "C:\Program Files\JetBrains\PyCharm 2021.3\plugins\python\helpers\pydev\pydevd.py", line 1483, in _exec
+    pydev_imports.execfile(file, globals, locals)  # execute the script
+  File "C:\Program Files\JetBrains\PyCharm 2021.3\plugins\python\helpers\pydev\_pydev_imps\_pydev_execfile.py", line 18, in execfile
+    exec(compile(contents+"\n", file, 'exec'), glob, loc)
+  File "D:/ANPR/anpr-s/ANPR_S.py", line 767, in <module>
     main()
-  File "D:/ANPR/anpr-s/ANPR_S.py", line 558, in main
-    set_camera("stream", CAMERA_BRAND, CAMERA_IP, CAM_USER, CAM_PASSWORD, frame)
-  File "D:/ANPR/anpr-s/ANPR_S.py", line 382, in set_camera
-    Z = np.float32(plate_img.reshape((-1)))
-KeyboardInterrupt
+  File "D:/ANPR/anpr-s/ANPR_S.py", line 517, in main
+    c = Camera(serial=cam_list[int(CAMERA_IP)])
+  File "pyflycap2\interface.pyx", line 306, in pyflycap2.interface.Camera.__cinit__
+  File "pyflycap2\includes/cy_compat.pxi", line 6, in pyflycap2.interface.check_ret
+Exception: PyFlyCap2: b'Bus Master Failure.', code: 19

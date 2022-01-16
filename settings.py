@@ -34,9 +34,9 @@ def get_value_encrypted(section, variable_name, type="str"):
         value = float(value)
     return value
 
-# save outputs and errors to files
-sys.stdout = open("log.dat", "w")
-sys.stderr = open('err.dat', 'w')
+# # save outputs and errors to files
+# sys.stdout = open("log.dat", "w")
+# sys.stderr = open('err.dat', 'w')
 
 # Reading config file
 Config = configparser.ConfigParser()
