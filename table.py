@@ -38,3 +38,25 @@ def save_into_database(plate_number, conf, cross_line, car_picture_colored, plat
 #         print(ex)
 #         print("[  ERROR  ] : database error")
 #         return "0", float(0)
+#
+#     def create_anpr_speed_table():
+#         dsn = f"Driver={SQL_SERVER_DRIVER};Server={SQL_SERVER_SERVER};Database={SQL_SERVER_DATABASE};Trusted_Connection=no;uid={SQL_SERVER_USER};pwd={SQL_SERVER_PASSWORD};"
+#         conn = pyodbc.connect(dsn)
+#         cursor = conn.cursor()
+#         query = (f"USE WIMDB")
+#         cursor.execute(query)
+#         query = (f"CREATE TABLE ANPR_Speed("
+#                  f"ID bigint IDENTITY(1,1) PRIMARY KEY NOT NULL,"
+#                  f"MotionTime datetime NOT NULL,"
+#                  f"NFrame TINYINT NULL,"
+#                  f"Speed int NULL,"
+#                  f"StartTime time NULL,"
+#                  f"EndTime time NULL,"
+#                  f"StartP int NULL, "
+#                  f"EndP int NULL, "
+#                  f"StartX float NULL, "
+#                  f"EndX float NULL, "
+#                  f"StartImage varchar(300) NULL, "
+#                  f"EndImage varchar(300) NULL)")
+#         cursor.execute(query)
+#         conn.commit()

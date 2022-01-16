@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "D:/ANPR/anpr-s/ANPR_S.py", line 621, in <module>
+    main()
+  File "D:/ANPR/anpr-s/ANPR_S.py", line 558, in main
+    set_camera("stream", CAMERA_BRAND, CAMERA_IP, CAM_USER, CAM_PASSWORD, frame)
+  File "D:/ANPR/anpr-s/ANPR_S.py", line 382, in set_camera
+    Z = np.float32(plate_img.reshape((-1)))
+KeyboardInterrupt

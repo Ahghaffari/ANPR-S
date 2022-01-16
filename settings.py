@@ -3,7 +3,7 @@ import sys
 import os
 import cv2
 from cryptography.fernet import Fernet
-
+import collections
 
 def decrypt(value):
     f = Fernet('1hK-AOxEVANnJBua2_Z91Cjex5iVheNJEnI9aRUTBtw=')
@@ -54,6 +54,16 @@ IMAGE_OUT_PATH = Config.get('OUTPUT', 'IMAGE_OUT_PATH')
 
 CAMERA_BRAND = Config.get('CAMERA', 'brand')
 CAMERA_IP = get_value_encrypted('CAMERA', 'ip')
+CAM_USER = get_value_encrypted('CAMERA', 'user')
+CAM_PASSWORD = get_value_encrypted('CAMERA', 'password')
+CAMERA_SET_INIT = Config.getboolean('CAMERA', 'camera_set_init')
+CAMERA_SET_AUTO = Config.getboolean('CAMERA', 'camera_set_auto')
+QUEUE_SIZE = Config.getint('CAMERA', 'camera_auto_q_size')
+GAIN_MINMAX = Config.get('CAMERA', 'gain_min_step_max')
+SHUTTER_LIST = Config.get('CAMERA', 'shutter_list')
+MIN_SHUTTER = Config.get('CAMERA', 'min_shutter')
+PLATE_MEAN_LOW_THR = Config.getint('CAMERA', 'plate_mean_low')
+PLATE_MEAN_HIGH_THR = Config.getint('CAMERA', 'plate_mean_high')
 
 SAVE_PIC_DB = Config.getboolean('OPTIONS', 'save_pic_db')
 SAVE_PIC_DRIVE = Config.getboolean('OPTIONS', 'save_pic_drive')
@@ -79,9 +89,6 @@ MINNEIGHBORS = get_value_encrypted('PLATE', 'minNeighbors', 'int')
 MINSIZE_X = get_value_encrypted('PLATE', 'MINSIZE_X', 'int')
 MINSIZE_Y = get_value_encrypted('PLATE', 'MINSIZE_Y', 'int')
 
-CAM_USER = get_value_encrypted('CAMERA', 'user')
-CAM_PASSWORD = get_value_encrypted('CAMERA', 'password')
-
 CASCADE_XML = get_value_encrypted('WEIGHTS', 'a_xml')
 NUM_MODEL = get_value_encrypted('WEIGHTS', 'num_model')
 CHAR_MODEL = get_value_encrypted('WEIGHTS', 'char_model')
@@ -94,4 +101,7 @@ cascade_model = cv2.CascadeClassifier(os.path.abspath(CASCADE_XML))
 number_model = cv2.dnn.readNetFromONNX(os.path.abspath(NUM_MODEL))
 character_model = cv2.dnn.readNetFromONNX(os.path.abspath(CHAR_MODEL))
 yolo_network = cv2.dnn.readNetFromDarknet(os.path.abspath(TINY_YOLO_CONFIG_FILE), os.path.abspath(TINY_YOLO_WEIGHT_FILE))
+CAM_AVG_QUEUE = collections.deque(maxlen=QUEUE_SIZE)
+CAM_MEAN_CENTER_QUEUE = collections.deque(maxlen=QUEUE_SIZE)
+CAM_MEAN_MINUS_QUEUE = collections.deque(maxlen=QUEUE_SIZE)
 mouse_poslist = []

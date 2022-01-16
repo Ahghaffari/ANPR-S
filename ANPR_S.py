@@ -8,6 +8,7 @@ import getmac
 from settings import *
 from table import save_into_database
 import sync_time
+import requests
 
 
 def decrypt_message(encrypted_message):
@@ -348,30 +349,117 @@ def set_camera_url(brand, ip, user, password):
     else:
         print("[  CONF  ] : Other camera models url")
         url = ip
+    print(url)
     return url
 
 
-def set_camera(brand, plate_img):
+def set_camera(state, brand, ip, user, password, gain_list=None, shutter_list=None,
+               plate_img=None):
+    global gain, shutter, PLATE_MEAN_LOW_THR, PLATE_MEAN_HIGH_THR, MIN_SHUTTER
+    if brand.lower() == "acti":
+        if state == "init":
+            # compression
+            req = "http://{0}:80/cgi-bin/encoder?USER={1}&PWD={2}&VIDEO_RESOLUTION={3}&VIDEO_FPS_NUM={4}&" \
+                  "VIDEO_ENCODER={5}&VIDEO_H264_QUALITY={6}". \
+                format(ip, user, password, "N1920x1080", "30", "H264", "HIGH")
+            requests.get(req)
+
+            # image
+            req = "http://{0}:80/cgi-bin/encoder?USER={1}&PWD={2}&VIDEO_BRIGHTNESS={3}&VIDEO_CONTRAST={4}&VIDEO_FLIP_MODE={5}&" \
+                  "VIDEO_WDR={6}&VIDEO_DIGITAL_NOISE_REDUCTION={7}" \
+                .format(ip, user, password, "50", "80", "1", "AUTO,120,0", "ON")
+            requests.get(req)
+
+            # day/night
+            req = "http://{0}:80/cgi-bin/encoder?USER={1}&PWD={2}&VIDEO_DAYNIGHT_MODE={3}&VIDEO_DN_IRLED={4}&DAY_GAIN_THD={5}" \
+                .format(ip, user, password, "AUTO", "1", "10")
+            requests.get(req)
+
+            # exposure / white balance
+            req = "http://{0}:80/cgi-bin/encoder?USER={1}&PWD={2}&VIDEO_WB_MODE={3}&VIDEO_EXPOSURE_MODE={4}&" \
+                  "VIDEO_SHUTTER_MODE={5}" \
+                .format(ip, user, password, "AUTO", "AUTO", "AUTO")
+            requests.get(req)
+            req = "http://{0}:80/cgi-bin/encoder?USER={1}&PWD={2}&VIDEO_EXPOSURE_GAIN={3}&VIDEO_MAX_SHUTTER={4}" \
+                .format(ip, user, password, "80", "8")
+            requests.get(req)
+        else:
+
+            CAM_AVG_QUEUE.append(cv2.mean(plate_img)[0])
+            # Z = np.float32(plate_img.reshape((-1)))
+            #
+            # # Define criteria, number of clusters(K) and apply kmeans()
+            # criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
+            #
+            # ret, label, center = cv2.kmeans(Z, 2, None, criteria, 5, cv2.KMEANS_RANDOM_CENTERS)
+            #
+            # # Convert back into uint8, and make original image
+            # center = np.uint8(center)
+            #
+            # # Add calculations to queue
+            # CAM_MEAN_CENTER_QUEUE.append(center[1][0] / 2 + center[0][0] / 2)
+            # CAM_MEAN_MINUS_QUEUE.append(np.abs(center[1][0] - center[0][0]))
+
+            mean = np.mean(CAM_AVG_QUEUE)
+            # print(mean, gain, shutter)
+            # minus = np.mean(CAM_MEAN_MINUS_QUEUE)
+            if mean < PLATE_MEAN_LOW_THR:
+                if int(shutter) > int(MIN_SHUTTER):
+                    # try:
+                    shutter = shutter_list[shutter_list.index(shutter) - 1]
+                    req = "http://{0}:80/cgi-bin/encoder?USER={1}&PWD={2}&VIDEO_EXPOSURE_GAIN={3}&VIDEO_SHUTTER_SPEED={4}" \
+                        .format(ip, user, password, str(gain), str(shutter))
+                    requests.get(req)
+                    # except:
+                    #     print("[  ERROR  ] : Compare your shutter list with camera config")
+
+                elif gain < int(gain_list[2]):
+                    gain = gain + int(gain_list[1])
+                    req = "http://{0}:80/cgi-bin/encoder?USER={1}&PWD={2}&VIDEO_EXPOSURE_GAIN={3}&VIDEO_SHUTTER_SPEED={4}" \
+                        .format(ip, user, password, str(gain), str(shutter))
+                    requests.get(req)
+
+            elif mean > PLATE_MEAN_HIGH_THR:
+                if gain > int(gain_list[0]):
+                    gain = gain - int(gain_list[1])
+                    req = "http://{0}:80/cgi-bin/encoder?USER={1}&PWD={2}&VIDEO_EXPOSURE_GAIN={3}&VIDEO_SHUTTER_SPEED={4}" \
+                        .format(ip, user, password, str(gain), str(shutter))
+                    requests.get(req)
+
+                elif int(shutter) < int(shutter_list[-1]):
+                    # try:
+                    shutter = shutter_list[shutter_list.index(shutter) + 1]
+                    req = "http://{0}:80/cgi-bin/encoder?USER={1}&PWD={2}&VIDEO_EXPOSURE_GAIN={3}&VIDEO_SHUTTER_SPEED={4}" \
+                        .format(ip, user, password, str(gain), str(shutter))
+                    requests.get(req)
+                    # except:
+                    #     print("[  ERROR  ] : Compare your shutter list with camera config")
+
+
+    elif brand.lower() == "milesight":
+        pass
+    else:
+        pass
 
     pass
 
+
 def main():
     print("FardIran ANPR System Started version 1.0 ;) ")
-    global IMAGE_OUT_PATH
-    global CAR_OUT_PATH
-    global PLATE_OUT_PATH
-    global mouse_poslist
-    global CAMERA_IP
-    global CAMERA_BRAND
-    global NTP_LIST
-    global SYNC_FLAG
+    global IMAGE_OUT_PATH, CAMERA_SET_AUTO, CAR_OUT_PATH, PLATE_OUT_PATH, mouse_poslist, CAMERA_IP, CAMERA_BRAND, \
+        NTP_LIST, SYNC_FLAG, CAMERA_SET_INIT, gain, shutter
     if SYNC_FLAG:
         try:
             sync_time.main(NTP_LIST)
         except:
             pass
+
     check_licence()
+
     CAMERA_URL = set_camera_url(CAMERA_BRAND, CAMERA_IP, CAM_USER, CAM_PASSWORD)
+    if CAMERA_SET_INIT:
+        set_camera("init", CAMERA_BRAND, CAMERA_IP, CAM_USER, CAM_PASSWORD)
+
     CAR_OUT_PATH = IMAGE_OUT_PATH
     if not os.path.exists(IMAGE_OUT_PATH):
         os.mkdir(IMAGE_OUT_PATH)
@@ -386,12 +474,13 @@ def main():
 
     last_plate = "99K999_99"
     last_plate_minimum_conf = 0.05
+
     cap = cv2.VideoCapture(CAMERA_URL)
     while True:
         ret, frame = cap.read()
         if not ret:
             cap = cv2.VideoCapture(CAMERA_URL)
-            print("[ ERROR ] : error initial reading from camera!")
+            print("[ ERROR ] : initial reading from camera!")
             continue
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         MASK_RESOLUTION_X, MASK_RESOLUTION_Y = np.shape(gray)
@@ -502,11 +591,36 @@ def main():
                 if cv2.waitKey(0):
                     cv2.destroyWindow('masked ROI_' + str(CAMERA_NUM))
 
+    if not CAMERA_SET_AUTO:
+        # set gain and shutter manual
+        req = "http://{0}:80/cgi-bin/encoder?USER={1}&PWD={2}&VIDEO_EXPOSURE_MODE={3}" \
+            .format(CAMERA_IP, CAM_USER, CAM_PASSWORD, "Manual")
+        requests.get(req)
+        req = "http://{0}:80/cgi-bin/encoder?USER={1}&PWD={2}&VIDEO_EXPOSURE_GAIN&VIDEO_SHUTTER_SPEED" \
+            .format(CAMERA_IP, CAM_USER, CAM_PASSWORD)
+        requests.get(req)
+        res = requests.get(req).content.decode("utf-8").split("'")
+        gain = int(res[1])
+        shutter = str(res[3])
+        gain_list = GAIN_MINMAX.split(",")
+        shutter_list = SHUTTER_LIST.split(",")
+
+        if int(shutter) < int(MIN_SHUTTER):
+            shutter = MIN_SHUTTER
+
+        if int(gain) > int(gain_list[2]):
+            gain = int(gain_list[2])
+        elif int(gain) < int(gain_list[0]):
+            gain = int(gain_list[0])
+
     while True:
         ret, frame = cap.read()
         if not ret:
             cap = cv2.VideoCapture(CAMERA_URL)
             continue
+        # if not CAMERA_SET_AUTO:
+        #     set_camera("stream", CAMERA_BRAND, CAMERA_IP, CAM_USER, CAM_PASSWORD, gain_list,
+        #                shutter_list, frame)
 
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         gray_masked = np.multiply(gray, mask).astype(np.uint8)
@@ -542,13 +656,18 @@ def main():
                                                                                  plate_img=plate_img,
                                                                                  final_plate=final_plate,
                                                                                  confidence=confidence)
-
                         if VERBOSE:
                             print("[  INFO  ] OCR successful. Translated plate: ", final_plate)
                             cv2.imshow("PLATE_O_" + str(CAMERA_NUM),
                                        cv2.resize(plate_img, (SHOW_RESOLUTION_X, SHOW_RESOLUTION_Y)))
                             cv2.waitKey(1)
+                        if not CAMERA_SET_AUTO:
+                            set_camera("stream", CAMERA_BRAND, CAMERA_IP, CAM_USER, CAM_PASSWORD, gain_list,
+                                       shutter_list, plate_img)
                         break
+
+
+
                 except:
                     pass
 
