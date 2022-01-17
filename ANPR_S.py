@@ -1,4 +1,6 @@
 import tkinter as tk
+
+import cv2
 import numpy as np
 import time
 from datetime import datetime
@@ -542,8 +544,9 @@ def main():
 
                 image_dict = c.get_current_image()
                 image_bytes = image_dict["buffer"]
-                frame = np.frombuffer(image_bytes, dtype=np.uint8).reshape((-1, 1288))
-                gray = np.asarray(frame)
+                frame = np.frombuffer(image_bytes, dtype=np.uint8).reshape((964, 1288, -1))
+                frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+
             except:
                 cc = CameraContext()
                 cc.rescan_bus()
@@ -560,7 +563,11 @@ def main():
                 cap = cv2.VideoCapture(CAMERA_URL)
                 print("[ ERROR ] : initial reading from camera!")
                 continue
+
+        try:
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        except:
+            gray = frame[:, :, 0]
 
         MASK_RESOLUTION_X, MASK_RESOLUTION_Y = np.shape(gray)
         break
@@ -706,8 +713,9 @@ def main():
                     continue
                 image_dict = c.get_current_image()
                 image_bytes = image_dict["buffer"]
-                frame = np.frombuffer(image_bytes, dtype=np.uint8).reshape((-1, 1288))
-                gray = frame
+                frame = np.frombuffer(image_bytes, dtype=np.uint8).reshape((964, 1288, -1))
+                frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+
             except:
                 cc = CameraContext()
                 cc.rescan_bus()
@@ -723,7 +731,12 @@ def main():
                 cap = cv2.VideoCapture(CAMERA_URL)
                 print("[ ERROR ] : initial reading from camera!")
                 continue
+
+        try:
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        except:
+
+            gray = frame[:, :, 0]
 
         # process taken frame
         gray_masked = np.multiply(gray, mask).astype(np.uint8)
