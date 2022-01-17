@@ -34,9 +34,6 @@ def get_value_encrypted(section, variable_name, type="str"):
         value = float(value)
     return value
 
-# save outputs and errors to files
-sys.stdout = open("log.dat", "w")
-sys.stderr = open('err.dat', 'w')
 
 # Reading config file
 Config = configparser.ConfigParser()
@@ -72,6 +69,11 @@ LIVE = Config.getboolean('OPTIONS', 'live')
 CAMERA_NUM = Config.getint('OPTIONS', 'camera_num')
 NTP_LIST = Config.get('OPTIONS', 'ntp_list')
 SYNC_FLAG = Config.getboolean('OPTIONS', 'sync_time')
+LOG_ERR = Config.getboolean('OPTIONS', 'log')
+if LOG_ERR:
+    # save outputs and errors to files
+    sys.stdout = open("log.dat", "w")
+    sys.stderr = open('err.dat', 'w')
 
 DB_ADDRESS = get_value_encrypted('DATABASE', 'database_server')
 DB_USER = get_value_encrypted('DATABASE', 'database_username')
