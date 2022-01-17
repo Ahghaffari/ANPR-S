@@ -484,7 +484,7 @@ def set_camera(state, brand, ip=None, user=None, password=None, gain_list=None, 
 
 
 def main():
-    print("FardIran ANPR System Started version 1.0 ;) ")
+    print("FardIran ANPR System Started version 1.1.0 ;) ")
     global IMAGE_OUT_PATH, CAMERA_SET_AUTO, CAR_OUT_PATH, PLATE_OUT_PATH, mouse_poslist, CAMERA_IP, CAMERA_BRAND, \
         NTP_LIST, SYNC_FLAG, CAMERA_SET_INIT, gain, shutter
 
