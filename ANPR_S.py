@@ -513,6 +513,7 @@ def main():
 
     if CAMERA_BRAND == "pointgrey":
         cc = CameraContext()
+        cc.force_all_ips()
         cc.rescan_bus()
         cam_list = cc.get_gige_cams()
         c = Camera(serial=cam_list[int(CAMERA_IP)])
