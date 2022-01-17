@@ -440,7 +440,8 @@ def set_camera(state, brand, ip=None, user=None, password=None, gain_list=None, 
         pass
     elif brand.lower() == "pointgrey":
         if state == "init":
-            pass
+            gui = GUI()
+            gui.show_selection()
         else:
             # CAM_AVG_QUEUE.append(cv2.mean(plate_img)[0])
             # # Z = np.float32(plate_img.reshape((-1)))
@@ -538,6 +539,7 @@ def main():
                     c.read_next_image()
                 except:
                     continue
+
                 image_dict = c.get_current_image()
                 image_bytes = image_dict["buffer"]
                 frame = np.frombuffer(image_bytes, dtype=np.uint8).reshape((-1, 1288))
