@@ -484,18 +484,25 @@ def main():
     print("FardIran ANPR System Started version 1.0 ;) ")
     global IMAGE_OUT_PATH, CAMERA_SET_AUTO, CAR_OUT_PATH, PLATE_OUT_PATH, mouse_poslist, CAMERA_IP, CAMERA_BRAND, \
         NTP_LIST, SYNC_FLAG, CAMERA_SET_INIT, gain, shutter
+
+    # sync system time
     if SYNC_FLAG:
         try:
             sync_time.main(NTP_LIST)
         except:
             pass
 
+    #check licence
     check_licence()
 
+    # set camera url based on model
     CAMERA_URL = set_camera_url(CAMERA_BRAND, CAMERA_IP, CAM_USER, CAM_PASSWORD)
+
+    # camera setting initialize
     if CAMERA_SET_INIT:
         set_camera(state="init", brand=CAMERA_BRAND, ip=CAMERA_IP, user=CAM_USER, password=CAM_PASSWORD)
 
+    # create folders for output images
     CAR_OUT_PATH = IMAGE_OUT_PATH
     if not os.path.exists(IMAGE_OUT_PATH):
         os.mkdir(IMAGE_OUT_PATH)
@@ -508,9 +515,11 @@ def main():
     if not os.path.exists(PLATE_OUT_PATH):
         os.mkdir(PLATE_OUT_PATH)
 
+    # initial plate for comparing
     last_plate = "99K999_99"
     last_plate_minimum_conf = 0.05
 
+    # initial read from camera and get a picture for masking or showing masked frame
     if CAMERA_BRAND == "pointgrey":
         cc = CameraContext()
         cc.force_all_ips()
@@ -554,6 +563,7 @@ def main():
         MASK_RESOLUTION_X, MASK_RESOLUTION_Y = np.shape(gray)
         break
 
+    # masking
     mask = np.ones((MASK_RESOLUTION_X, MASK_RESOLUTION_Y))
     if MASKF:
         while True:
@@ -659,6 +669,7 @@ def main():
                 if cv2.waitKey(0):
                     cv2.destroyWindow('masked ROI_' + str(CAMERA_NUM))
 
+    # initial manual camera setting for manual gain and shutter setting
     if not CAMERA_SET_AUTO:
         if CAMERA_BRAND.lower() == "acti":
             # set gain and shutter manual
@@ -683,6 +694,8 @@ def main():
                 gain = int(gain_list[0])
 
     while True:
+
+        # read from camera
         if CAMERA_BRAND.lower() == "pointgrey":
             try:
                 try:
@@ -710,6 +723,7 @@ def main():
                 continue
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
+        # process taken frame
         gray_masked = np.multiply(gray, mask).astype(np.uint8)
         gray_masked_ROI = gray_masked[min(posNp[0][1], posNp[1][1]):max(posNp[2][1], posNp[3][1]),
                           min(posNp[0][0], posNp[3][0]):max(posNp[1][0], posNp[2][0])]
