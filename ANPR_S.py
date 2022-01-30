@@ -352,7 +352,6 @@ def set_camera_url(brand, ip, user, password):
     else:
         print("[  CONF  ] : Other camera models url")
         url = ip
-    print(url)
     return url
 
 
