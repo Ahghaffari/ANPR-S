@@ -619,6 +619,8 @@ def main():
 
         except:
             print("[ WARNING ] : Not masked yet, working with full frame or start again and mask it!")
+            gray_shape = np.shape(gray)
+            posNp = np.array([[(0, 0), (1920, 0), (0, 1200), (1920, 1200)]], dtype=np.int32)
             gray_ROI = gray
             if VERBOSE:
                 cv2.imshow("masked ROI_" + str(CAMERA_NUM), cv2.resize(gray_ROI, (SHOW_RESOLUTION_X, SHOW_RESOLUTION_Y)))
