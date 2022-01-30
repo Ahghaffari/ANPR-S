@@ -569,11 +569,9 @@ def main():
         except:
             gray = frame[:, :, 0]
 
-        MASK_RESOLUTION_X, MASK_RESOLUTION_Y = np.shape(gray)
         break
 
     # masking
-    mask = np.ones((MASK_RESOLUTION_X, MASK_RESOLUTION_Y))
     if MASKF:
         while True:
             cv2.namedWindow('masking_' + str(CAMERA_NUM), cv2.WND_PROP_FULLSCREEN)
@@ -582,99 +580,48 @@ def main():
             cv2.imshow('masking_' + str(CAMERA_NUM), gray)
             for x, y in mouse_poslist:
                 cv2.circle(gray, (x, y), 8, 0, 3)
-            cv2.waitKey(1)
             posNp = np.array(mouse_poslist)
-
-            if len(posNp) == 4:
+            key = cv2.waitKey(1)
+            if key == 27:  # escape key
                 cv2.destroyWindow('masking_' + str(CAMERA_NUM))
                 break
-
-        if posNp[0][1] == posNp[1][1]:
-            on_x = True
-        else:
-            on_x = False
-        MASK_SLOP = (posNp[0][0] - posNp[1][0]) / (posNp[0][1] - posNp[1][1])
-        if np.abs(MASK_SLOP) < 0.0001:
-            MASK_SLOP = 0
-        MASK_OFFSET = posNp[0][0] - (posNp[0][1] * MASK_SLOP)
-        for x in range(MASK_RESOLUTION_X):
-            for y in range(MASK_RESOLUTION_Y):
-                if on_x:
-                    if x < posNp[0][1]:
-                        mask[x, y] = 0
-                elif MASK_SLOP > 0 and MASK_SLOP * x + MASK_OFFSET < y:
-                    mask[x, y] = 0
-                elif MASK_SLOP < 0 and MASK_SLOP * x + MASK_OFFSET > y:
-                    mask[x, y] = 0
-
-        MASK_SLOP = np.abs((posNp[1][0] - posNp[2][0]) / (posNp[1][1] - posNp[2][1]))
-        if MASK_SLOP < 0.0001:
-            MASK_SLOP = 0
-        MASK_OFFSET = posNp[1][0] - (posNp[1][1] * MASK_SLOP)
-        for x in range(MASK_RESOLUTION_X):
-            for y in range(MASK_RESOLUTION_Y):
-                if MASK_SLOP * x + MASK_OFFSET < y:
-                    mask[x, y] = 0
-
-        if posNp[2][1] == posNp[3][1]:
-            on_x = True
-        else:
-            on_x = False
-        MASK_SLOP = (posNp[2][0] - posNp[3][0]) / (posNp[2][1] - posNp[3][1])
-        if np.abs(MASK_SLOP) < 0.0001:
-            MASK_SLOP = 0
-        MASK_OFFSET = posNp[2][0] - (posNp[2][1] * MASK_SLOP)
-        for x in range(MASK_RESOLUTION_X):
-            for y in range(MASK_RESOLUTION_Y):
-                if on_x:
-                    if x > posNp[2][1]:
-                        mask[x, y] = 0
-                elif MASK_SLOP > 0 and MASK_SLOP * x + MASK_OFFSET > y:
-                    mask[x, y] = 0
-                elif MASK_SLOP < 0 and MASK_SLOP * x + MASK_OFFSET < y:
-                    mask[x, y] = 0
-
-        MASK_SLOP = np.abs((posNp[3][0] - posNp[0][0]) / (posNp[3][1] - posNp[0][1]))
-        if MASK_SLOP < 0.0001:
-            MASK_SLOP = 0
-        MASK_OFFSET = posNp[3][0] - (posNp[3][1] * MASK_SLOP)
-        for x in range(MASK_RESOLUTION_X):
-            for y in range(MASK_RESOLUTION_Y):
-                if MASK_SLOP * x + MASK_OFFSET > y:
-                    mask[x, y] = 0
-
+        posNp = np.array([posNp], dtype=np.int32)
+        gray1 = np.copy(gray)
+        gray2 = np.copy(gray)
+        mask = cv2.fillPoly(gray1, posNp, 0)
+        mask = np.logical_not(mask).astype(np.uint8)
         gray = np.multiply(gray, mask).astype(np.uint8)
-        gray_ROI = gray[min(posNp[0][1], posNp[1][1]):max(posNp[2][1], posNp[3][1]),
-                   min(posNp[0][0], posNp[3][0]):max(posNp[1][0], posNp[2][0])]
+        gray_ROI = gray2[min(posNp[0, :, 1]):max(posNp[0, :, 1]), min(posNp[0, :, 0]):max(posNp[0, :, 0])]
         if VERBOSE:
             cv2.imshow("masked ROI_" + str(CAMERA_NUM), cv2.resize(gray_ROI, (SHOW_RESOLUTION_X, SHOW_RESOLUTION_Y)))
+            cv2.imshow("masked_" + str(CAMERA_NUM), cv2.resize(gray, (SHOW_RESOLUTION_X, SHOW_RESOLUTION_Y)))
             if cv2.waitKey(0):
                 cv2.destroyWindow('masked ROI_' + str(CAMERA_NUM))
-        np.save('MASK.npy', mask)
+                cv2.destroyWindow('masked_' + str(CAMERA_NUM))
         np.save('points.npy', posNp)
 
     else:
         try:
-            mask = np.load('MASK.npy')
             posNp = np.load('points.npy')
+            gray1 = np.copy(gray)
+            gray2 = np.copy(gray)
+            mask = cv2.fillPoly(gray1, posNp, 0)
+            mask = np.logical_not(mask).astype(np.uint8)
             gray = np.multiply(gray, mask).astype(np.uint8)
-            gray_ROI = gray[min(posNp[0][1], posNp[1][1]):max(posNp[2][1], posNp[3][1]),
-                       min(posNp[0][0], posNp[3][0]):max(posNp[1][0], posNp[2][0])]
+            gray_ROI = gray2[min(posNp[0, :, 1]):max(posNp[0, :, 1]), min(posNp[0, :, 0]):max(posNp[0, :, 0])]
             if VERBOSE:
                 cv2.imshow("masked ROI_" + str(CAMERA_NUM),
                            cv2.resize(gray_ROI, (SHOW_RESOLUTION_X, SHOW_RESOLUTION_Y)))
+                cv2.imshow("masked_" + str(CAMERA_NUM), cv2.resize(gray, (SHOW_RESOLUTION_X, SHOW_RESOLUTION_Y)))
                 if cv2.waitKey(0):
                     cv2.destroyWindow('masked ROI_' + str(CAMERA_NUM))
+                    cv2.destroyWindow('masked_' + str(CAMERA_NUM))
 
         except:
             print("[ WARNING ] : Not masked yet, working with full frame or start again and mask it!")
-            posNp = [[10, 10], [MASK_RESOLUTION_Y - 10, 10], [MASK_RESOLUTION_Y - 10, MASK_RESOLUTION_X - 10],
-                     [10, MASK_RESOLUTION_X - 10]]
-            gray_ROI = gray[min(posNp[0][1], posNp[1][1]):max(posNp[2][1], posNp[3][1]),
-                       min(posNp[0][0], posNp[3][0]):max(posNp[1][0], posNp[2][0])]
+            gray_ROI = gray
             if VERBOSE:
-                cv2.imshow("masked ROI_" + str(CAMERA_NUM),
-                           cv2.resize(gray_ROI, (SHOW_RESOLUTION_X, SHOW_RESOLUTION_Y)))
+                cv2.imshow("masked ROI_" + str(CAMERA_NUM), cv2.resize(gray_ROI, (SHOW_RESOLUTION_X, SHOW_RESOLUTION_Y)))
                 if cv2.waitKey(0):
                     cv2.destroyWindow('masked ROI_' + str(CAMERA_NUM))
 
@@ -739,11 +686,14 @@ def main():
             gray = frame[:, :, 0]
 
         # process taken frame
+        gray1 = np.copy(gray)
+        gray2 = np.copy(gray)
+        mask = cv2.fillPoly(gray1, posNp, 0)
+        mask = np.logical_not(mask).astype(np.uint8)
+        gray = np.multiply(gray, mask).astype(np.uint8)
+        gray_ROI = gray2[min(posNp[0, :, 1]):max(posNp[0, :, 1]), min(posNp[0, :, 0]):max(posNp[0, :, 0])]
         gray_masked = np.multiply(gray, mask).astype(np.uint8)
-        gray_masked_ROI = gray_masked[min(posNp[0][1], posNp[1][1]):max(posNp[2][1], posNp[3][1]),
-                          min(posNp[0][0], posNp[3][0]):max(posNp[1][0], posNp[2][0])]
-        gray_ROI = gray[min(posNp[0][1], posNp[1][1]):max(posNp[2][1], posNp[3][1]),
-                   min(posNp[0][0], posNp[3][0]):max(posNp[1][0], posNp[2][0])]
+        gray_masked_ROI = gray_masked[min(posNp[0, :, 1]):max(posNp[0, :, 1]), min(posNp[0, :, 0]):max(posNp[0, :, 0])]
         plates = cascade_model.detectMultiScale(image=gray_masked_ROI, scaleFactor=SCALEFACTOR,
                                                 minNeighbors=MINNEIGHBORS,
                                                 minSize=(MINSIZE_X, MINSIZE_Y))
