@@ -70,6 +70,11 @@ CAMERA_NUM = Config.getint('OPTIONS', 'camera_num')
 NTP_LIST = Config.get('OPTIONS', 'ntp_list')
 SYNC_FLAG = Config.getboolean('OPTIONS', 'sync_time')
 LOG_ERR = Config.getboolean('OPTIONS', 'log')
+ROTATE = Config.getboolean('OPTIONS', 'rotate')
+ROTATION_DEGREE = Config.getint('OPTIONS', 'rotation_degree')
+WARPING = Config.getboolean('OPTIONS', 'warping')
+WARPING_SET = Config.getboolean('OPTIONS', 'warping_set')
+
 if LOG_ERR:
     # save outputs and errors to files
     sys.stdout = open("log.dat", "w")
@@ -107,3 +112,4 @@ CAM_AVG_QUEUE = collections.deque(maxlen=QUEUE_SIZE)
 CAM_MEAN_CENTER_QUEUE = collections.deque(maxlen=QUEUE_SIZE)
 CAM_MEAN_MINUS_QUEUE = collections.deque(maxlen=QUEUE_SIZE)
 mouse_poslist = []
+mouse_poslist1 = []

@@ -1,6 +1,7 @@
 import tkinter as tk
 
 import cv2
+import math
 import numpy as np
 import time
 from datetime import datetime
@@ -337,6 +338,28 @@ def insert_to_database(save_to_db, save_pic_drive, save_pic_db, verbose, camera_
 
     return last_plate, last_plate_minimum_conf
 
+def rotation(image, angleInDegrees):
+    h, w = image.shape[:2]
+    img_c = (w / 2, h / 2)
+
+    rot = cv2.getRotationMatrix2D(img_c, angleInDegrees, 1)
+
+    rad = math.radians(angleInDegrees)
+    sin = math.sin(rad)
+    cos = math.cos(rad)
+    b_w = int((h * abs(sin)) + (w * abs(cos)))
+    b_h = int((h * abs(cos)) + (w * abs(sin)))
+
+    rot[0, 2] += ((b_w / 2) - img_c[0])
+    rot[1, 2] += ((b_h / 2) - img_c[1])
+
+    outImg = cv2.warpAffine(image, rot, (b_w, b_h), flags=cv2.INTER_LINEAR)
+    return outImg
+
+def on_mouse_warp(event, x, y, flags, param):
+    global mouse_poslist1
+    if event == cv2.EVENT_LBUTTONDOWN:
+        mouse_poslist1.append((x, y))
 
 def on_mouse(event, x, y, flags, param):
     global mouse_poslist
@@ -484,7 +507,7 @@ def set_camera(state, brand, ip=None, user=None, password=None, gain_list=None, 
 
 def main():
     print("FardIran ANPR System Started version 1.2.0 ;) ")
-    global IMAGE_OUT_PATH, CAMERA_SET_AUTO, CAR_OUT_PATH, PLATE_OUT_PATH, mouse_poslist, CAMERA_IP, CAMERA_BRAND, \
+    global IMAGE_OUT_PATH, CAMERA_SET_AUTO, CAR_OUT_PATH, PLATE_OUT_PATH, mouse_poslist, mouse_poslist1, CAMERA_IP, CAMERA_BRAND, \
         NTP_LIST, SYNC_FLAG, CAMERA_SET_INIT, gain, shutter
 
     # sync system time
@@ -626,6 +649,59 @@ def main():
                 if cv2.waitKey(0):
                     cv2.destroyWindow('masked ROI_' + str(CAMERA_NUM))
 
+    if WARPING_SET:
+        while True:
+            cv2.namedWindow('warping_' + str(CAMERA_NUM), cv2.WND_PROP_FULLSCREEN)
+            cv2.setWindowProperty("warping_" + str(CAMERA_NUM), cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+            cv2.setMouseCallback('warping_' + str(CAMERA_NUM), on_mouse_warp)
+            cv2.imshow('warping_' + str(CAMERA_NUM), gray_ROI)
+            for x, y in mouse_poslist1:
+                cv2.circle(gray_ROI, (x, y), 8, 0, 3)
+            pts_src = np.array(mouse_poslist1)
+            key = cv2.waitKey(1)
+            if key == 27:  # escape key
+                cv2.destroyWindow('warping_' + str(CAMERA_NUM))
+                break
+
+        pts_dst = np.array([[min(pts_src[0, 0], pts_src[2, 0]), min(pts_src[0, 1], pts_src[1, 1])],
+                            [max(pts_src[1, 0], pts_src[2, 0]), min(pts_src[0, 1], pts_src[1, 1])],
+                            [max(pts_src[1, 0], pts_src[2, 0]), max(pts_src[2, 1], pts_src[3, 1])],
+                            [min(pts_src[0, 0], pts_src[2, 0]), max(pts_src[2, 1], pts_src[3, 1])]])
+        try:
+            warp_mat, status = cv2.findHomography(pts_src, pts_dst)
+            np.save("warp.npy", warp_mat)
+        except:
+            print("[ ERROR  ] : Error in selecting points for warping!")
+
+    elif WARPING:
+        try:
+            warp_mat = np.load("warp.npy")
+        except:
+            print("[ WARNING  ] : warping mask couldn`t find. please warp it first then you can use it.")
+            while True:
+                cv2.namedWindow('warping_' + str(CAMERA_NUM), cv2.WND_PROP_FULLSCREEN)
+                cv2.setWindowProperty("warping_" + str(CAMERA_NUM), cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+                cv2.setMouseCallback('warping_' + str(CAMERA_NUM), on_mouse_warp)
+                cv2.imshow('warping_' + str(CAMERA_NUM), gray_ROI)
+                for x, y in mouse_poslist1:
+                    cv2.circle(gray_ROI, (x, y), 8, 0, 3)
+                pts_src = np.array(mouse_poslist1)
+                key = cv2.waitKey(1)
+                if key == 27:  # escape key
+                    cv2.destroyWindow('warping_' + str(CAMERA_NUM))
+                    break
+
+            pts_dst = np.array([[min(pts_src[0, 0], pts_src[2, 0]), min(pts_src[0, 1], pts_src[1, 1])],
+                                [max(pts_src[1, 0], pts_src[2, 0]), min(pts_src[0, 1], pts_src[1, 1])],
+                                [max(pts_src[1, 0], pts_src[2, 0]), max(pts_src[2, 1], pts_src[3, 1])],
+                                [min(pts_src[0, 0], pts_src[2, 0]), max(pts_src[2, 1], pts_src[3, 1])]])
+            try:
+                warp_mat, status = cv2.findHomography(pts_src, pts_dst)
+                np.save("warp.npy", warp_mat)
+            except:
+                print("[ ERROR  ] : Error in selecting points for warping!")
+
+
     # initial manual camera setting for manual gain and shutter setting
     if not CAMERA_SET_AUTO:
         if CAMERA_BRAND.lower() == "acti":
@@ -695,6 +771,13 @@ def main():
         gray_ROI = gray2[min(posNp[0, :, 1]):max(posNp[0, :, 1]), min(posNp[0, :, 0]):max(posNp[0, :, 0])]
         gray_masked = np.multiply(gray, mask).astype(np.uint8)
         gray_masked_ROI = gray_masked[min(posNp[0, :, 1]):max(posNp[0, :, 1]), min(posNp[0, :, 0]):max(posNp[0, :, 0])]
+        if WARPING:
+            gray_masked_ROI = cv2.warpPerspective(gray_masked_ROI, warp_mat, (gray_masked_ROI.shape[1], gray_masked_ROI.shape[0]))
+            gray_ROI = cv2.warpPerspective(gray_ROI, warp_mat,
+                                                  (gray_masked_ROI.shape[1], gray_masked_ROI.shape[0]))
+        if ROTATE:
+            gray_masked_ROI = rotation(gray_masked_ROI, ROTATION_DEGREE)
+            gray_ROI = rotation(gray_ROI, ROTATION_DEGREE)
         plates = cascade_model.detectMultiScale(image=gray_masked_ROI, scaleFactor=SCALEFACTOR,
                                                 minNeighbors=MINNEIGHBORS,
                                                 minSize=(MINSIZE_X, MINSIZE_Y))
@@ -740,6 +823,7 @@ def main():
         if VERBOSE:
             cv2.imshow("masked_" + str(CAMERA_NUM), cv2.resize(gray_masked, (SHOW_RESOLUTION_X, SHOW_RESOLUTION_Y)))
             cv2.imshow("gray ROI_" + str(CAMERA_NUM), cv2.resize(gray_ROI, (SHOW_RESOLUTION_X, SHOW_RESOLUTION_Y)))
+            cv2.imshow("gray_masked_ROI_" + str(CAMERA_NUM), cv2.resize(gray_masked_ROI, (SHOW_RESOLUTION_X, SHOW_RESOLUTION_Y)))
             cv2.waitKey(1)
         if LIVE:
             cv2.imshow("LIVE_" + str(CAMERA_NUM), cv2.resize(frame, (SHOW_RESOLUTION_X, SHOW_RESOLUTION_Y)))
