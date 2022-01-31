@@ -702,8 +702,9 @@ def main():
         if len(plates) > 0:
 
             for (x, y, w, h) in plates:
-
-                plate_img = gray_ROI[y - PLATE_MARGIN:y + h + PLATE_MARGIN, x - PLATE_MARGIN:x + w + PLATE_MARGIN]
+                gray_ROI_shape = np.shape(gray_ROI)
+                plate_img = gray_ROI[max(y - PLATE_MARGIN, 1):min(y + h + PLATE_MARGIN, gray_ROI_shape[0]-1), max(x - PLATE_MARGIN, 1):min(x + w + PLATE_MARGIN, gray_ROI_shape[1]-1)]
+    f
                 if VERBOSE:
                     cv2.imshow("PLATE_R_" + str(CAMERA_NUM),
                                cv2.resize(plate_img, (SHOW_RESOLUTION_X, SHOW_RESOLUTION_Y)))
