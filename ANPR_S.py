@@ -595,6 +595,8 @@ def main():
 
     # masking
     if MASKF:
+        gray1 = np.copy(gray)
+        gray2 = np.copy(gray)
         while True:
             cv2.namedWindow('masking_' + str(CAMERA_NUM), cv2.WND_PROP_FULLSCREEN)
             cv2.setWindowProperty("masking_" + str(CAMERA_NUM), cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
@@ -608,8 +610,6 @@ def main():
                 cv2.destroyWindow('masking_' + str(CAMERA_NUM))
                 break
         posNp = np.array([posNp], dtype=np.int32)
-        gray1 = np.copy(gray)
-        gray2 = np.copy(gray)
         mask = cv2.fillPoly(gray1, posNp, 0)
         mask = np.logical_not(mask).astype(np.uint8)
         gray = np.multiply(gray, mask).astype(np.uint8)
@@ -642,6 +642,7 @@ def main():
         except:
             print("[ WARNING ] : Not masked yet, working with full frame or start again and mask it!")
             gray_shape = np.shape(gray)
+            mask = np.ones(gray_shape)
             posNp = np.array([[(0, 0), (0, gray_shape[0]), (gray_shape[1], gray_shape[0]), (gray_shape[1], 0)]], dtype=np.int32)
             gray_ROI = gray
             if VERBOSE:
@@ -763,10 +764,7 @@ def main():
             gray = frame[:, :, 0]
 
         # process taken frame
-        gray1 = np.copy(gray)
         gray2 = np.copy(gray)
-        mask = cv2.fillPoly(gray1, posNp, 0)
-        mask = np.logical_not(mask).astype(np.uint8)
         gray = np.multiply(gray, mask).astype(np.uint8)
         gray_ROI = gray2[min(posNp[0, :, 1]):max(posNp[0, :, 1]), min(posNp[0, :, 0]):max(posNp[0, :, 0])]
         gray_masked = np.multiply(gray, mask).astype(np.uint8)
@@ -778,6 +776,7 @@ def main():
         if ROTATE:
             gray_masked_ROI = rotation(gray_masked_ROI, ROTATION_DEGREE)
             gray_ROI = rotation(gray_ROI, ROTATION_DEGREE)
+        
         plates = cascade_model.detectMultiScale(image=gray_masked_ROI, scaleFactor=SCALEFACTOR,
                                                 minNeighbors=MINNEIGHBORS,
                                                 minSize=(MINSIZE_X, MINSIZE_Y))
