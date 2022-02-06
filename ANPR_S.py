@@ -1,3 +1,4 @@
+import os
 import tkinter as tk
 
 import cv2
@@ -72,6 +73,7 @@ def check_licence():
         serial = activation.SerialNumber()
         is_activated, uuid, did = serial.check_activation_status(type='S')
         offline_activation = wo_net_activation(is_activated)
+
         if is_activated is False and offline_activation is False:
             window = tk.Tk()
             window.title("Registration result")
@@ -87,7 +89,7 @@ def check_licence():
 
             else:
                 reg = tk.Label(window, text='Device is not activated. Device ID:\n ' +
-                                            str(uuid) + '\n' +
+                                            str(uuid[:8]) + '\n' +
                                             'To activate please call FardIran (+98-21-8234).', font=('calibre', 10),
                                anchor='center')
 
@@ -101,6 +103,34 @@ def check_licence():
 
             window.destroy()
             exit()
+
+        elif is_activated is False and offline_activation is True and uuid != '':
+            if SERIAL_NUM != uuid[-8:]:
+                try:
+                    os.remove("info.txt")
+                    window = tk.Tk()
+                    window.title("Registration result")
+                    window.resizable(0, 0)
+                    window.protocol('WM_DELETE_WINDOW', destroy)
+                    window.iconbitmap('b.ico')
+
+                    reg = tk.Label(window, text='Device is not activated. Device ID:\n ' +
+                                    str(uuid[:8]) + '\n' +
+                                        'To activate please call FardIran (+98-21-8234).', font=('calibre', 10),
+                                        anchor='center')
+
+                    okVar = tk.IntVar()
+                    btnOK = tk.Button(window, text="OK", pady=5, font=("calibre", 10),
+                                      bg='lightgreen', command=lambda: okVar.set(1))
+                    window.tkraise()
+                    reg.grid(row=1, column=0)
+                    btnOK.grid(row=2, column=0)
+                    window.wait_variable(okVar)
+                    window.destroy()
+                    exit()
+                except:
+                    pass
+
         else:
             print("successfuly activated!")
 
@@ -776,11 +806,10 @@ def main():
         if ROTATE:
             gray_masked_ROI = rotation(gray_masked_ROI, ROTATION_DEGREE)
             gray_ROI = rotation(gray_ROI, ROTATION_DEGREE)
-        
+
         plates = cascade_model.detectMultiScale(image=gray_masked_ROI, scaleFactor=SCALEFACTOR,
                                                 minNeighbors=MINNEIGHBORS,
                                                 minSize=(MINSIZE_X, MINSIZE_Y))
-
         if len(plates) > 0:
 
             for (x, y, w, h) in plates:

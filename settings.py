@@ -74,6 +74,7 @@ ROTATE = Config.getboolean('OPTIONS', 'rotate')
 ROTATION_DEGREE = Config.getint('OPTIONS', 'rotation_degree')
 WARPING = Config.getboolean('OPTIONS', 'warping')
 WARPING_SET = Config.getboolean('OPTIONS', 'warping_set')
+SERIAL_NUM = get_value_encrypted('OPTIONS', 'serial')
 
 if LOG_ERR:
     # save outputs and errors to files
