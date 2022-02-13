@@ -14,6 +14,8 @@ from table import save_into_database
 import sync_time
 import requests
 from pyflycap2.interface import CameraContext, GUI, Camera
+import os
+import uuid
 
 
 def decrypt_message(encrypted_message):
@@ -35,31 +37,36 @@ def is_serial_number_valid(key, serial_number):
         return False
 
 
-def generate_serial_number(sys_id):
+def generate_serial_number(sys_id, num):
     key = '1hK-AOxEVANnJBua2_Z91Cjex5iVheNJEnI9aRUTBtw='.encode('utf-8')
     f = Fernet(key)
     token_encoded = f.encrypt((sys_id + "_Amirhossein").encode('utf-8')).decode()
-    with open("info.txt", "w") as text_file:
+    with open(f"info{num}.txt", "w") as text_file:
         print(token_encoded, file=text_file)
 
-
 def wo_net_activation(is_activated):
+    key2 = str(uuid.getnode())
     mac_address = getmac.get_mac_address()
     splited = mac_address.split(":")
-    key = ''
+    key1 = ''
     for item in splited:
-        key += item
+        key1 += item
     if is_activated:
-        generate_serial_number(key)
+        generate_serial_number(key1, "1")
+        generate_serial_number(key2, "2")
         return True
 
     else:
         try:
-            f = open("info.txt", "r")
-            SERIAL_NUMBER = f.read()
+            f1 = open("info1.txt", "r")
+            f2 = open("info2.txt", "r")
+            SERIAL_NUMBER1 = f1.read()
+            SERIAL_NUMBER2 = f2.read()
         except:
             return False
-        valid = is_serial_number_valid(key, SERIAL_NUMBER)
+        valid1 = is_serial_number_valid(key1, SERIAL_NUMBER1)
+        valid2 = is_serial_number_valid(key2, SERIAL_NUMBER2)
+        valid = valid1 or valid2
         return valid
 
 
