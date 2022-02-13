@@ -16,7 +16,15 @@ import requests
 from pyflycap2.interface import CameraContext, GUI, Camera
 import os
 import uuid
+import wmi
+import os
 
+def get_serial_number_of_system_physical_disk():
+    c = wmi.WMI()
+    logical_disk = c.Win32_LogicalDisk(Caption=os.getenv("SystemDrive"))[0]
+    partition = logical_disk.associators()[1]
+    physical_disc = partition.associators()[0]
+    return physical_disc.qualifiers["UUID"]
 
 def decrypt_message(encrypted_message):
     key = b'1hK-AOxEVANnJBua2_Z91Cjex5iVheNJEnI9aRUTBtw='
@@ -46,6 +54,7 @@ def generate_serial_number(sys_id, num):
 
 def wo_net_activation(is_activated):
     key2 = str(uuid.getnode())
+    key3 = str(get_serial_number_of_system_physical_disk())
     mac_address = getmac.get_mac_address()
     splited = mac_address.split(":")
     key1 = ''
@@ -54,19 +63,23 @@ def wo_net_activation(is_activated):
     if is_activated:
         generate_serial_number(key1, "1")
         generate_serial_number(key2, "2")
+        generate_serial_number(key3, "3")
         return True
 
     else:
         try:
             f1 = open("info1.txt", "r")
             f2 = open("info2.txt", "r")
+            f3 = open("info3.txt", "r")
             SERIAL_NUMBER1 = f1.read()
             SERIAL_NUMBER2 = f2.read()
+            SERIAL_NUMBER3 = f3.read()
         except:
             return False
         valid1 = is_serial_number_valid(key1, SERIAL_NUMBER1)
         valid2 = is_serial_number_valid(key2, SERIAL_NUMBER2)
-        valid = valid1 or valid2
+        valid3 = is_serial_number_valid(key3, SERIAL_NUMBER3)
+        valid = valid1 or valid2 or valid3
         return valid
 
 
