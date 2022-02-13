@@ -114,7 +114,8 @@ def check_licence():
         elif is_activated is False and offline_activation is True and uuid != '':
             if SERIAL_NUM != uuid[-8:]:
                 try:
-                    os.remove("info.txt")
+                    os.remove("info1.txt")
+                    os.remove("info2.txt")
                     window = tk.Tk()
                     window.title("Registration result")
                     window.resizable(0, 0)
