@@ -23,8 +23,15 @@ def get_serial_number_of_system_physical_disk():
     c = wmi.WMI()
     logical_disk = c.Win32_LogicalDisk(Caption=os.getenv("SystemDrive"))[0]
     partition = logical_disk.associators()[1]
-    physical_disc = partition.associators()[0]
-    return physical_disc.qualifiers["UUID"]
+    physical_disc = partition.associators()
+    for elem in physical_disc:
+        try:
+            uuid = elem.qualifiers["UUID"]
+            return uuid
+        except:
+            pass
+    print("[  Error  ]:Error in getting device UUID!")
+    exit()
 
 def decrypt_message(encrypted_message):
     key = b'1hK-AOxEVANnJBua2_Z91Cjex5iVheNJEnI9aRUTBtw='
@@ -55,7 +62,12 @@ def generate_serial_number(sys_id, num):
 def wo_net_activation(is_activated):
     key2 = str(uuid.getnode())
     key3 = str(get_serial_number_of_system_physical_disk())
-    mac_address = getmac.get_mac_address()
+    mac_found = True
+    try:
+        mac_address = getmac.get_mac_address()
+    except:
+        mac_address = "00:00:00:00:00"
+        mac_found = False
     splited = mac_address.split(":")
     key1 = ''
     for item in splited:
@@ -79,6 +91,8 @@ def wo_net_activation(is_activated):
         valid1 = is_serial_number_valid(key1, SERIAL_NUMBER1)
         valid2 = is_serial_number_valid(key2, SERIAL_NUMBER2)
         valid3 = is_serial_number_valid(key3, SERIAL_NUMBER3)
+        if not mac_found:
+            valid1 = False
         valid = valid1 or valid2 or valid3
         return valid
 
@@ -129,6 +143,7 @@ def check_licence():
                 try:
                     os.remove("info1.txt")
                     os.remove("info2.txt")
+                    os.remove("info3.txt")
                     window = tk.Tk()
                     window.title("Registration result")
                     window.resizable(0, 0)
@@ -557,7 +572,7 @@ def set_camera(state, brand, ip=None, user=None, password=None, gain_list=None, 
 
 
 def main():
-    print("FardIran ANPR System Started version 1.2.0 ;) ")
+    print("FardIran ANPR System Started version 1.2.1 ;) ")
     global IMAGE_OUT_PATH, CAMERA_SET_AUTO, CAR_OUT_PATH, PLATE_OUT_PATH, mouse_poslist, mouse_poslist1, CAMERA_IP, CAMERA_BRAND, \
         NTP_LIST, SYNC_FLAG, CAMERA_SET_INIT, gain, shutter
 
