@@ -2,4 +2,5 @@ test.py
 err.dat
 log.dat
 files/ffmpeg.exe
+files/a.weights
 venv
